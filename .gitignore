@@ -1,0 +1,64 @@
+# Python 관련
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 가상환경
+venv/
+env/
+ENV/
+.env
+.venv
+env.bak/
+venv.bak/
+
+# IDE 관련
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 실험 결과 파일
+results_*.csv
+*.xlsx
+*.xls
+
+# 운영체제 관련
+.DS_Store  # Mac
+Thumbs.db  # Windows
+desktop.ini # Windows
+.directory  # Linux
+
+# 실험 이미지 파일
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tiff
+
+# 로그 파일
+*.log
+logs/
+
+# 임시 파일
+temp/
+tmp/
