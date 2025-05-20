@@ -293,9 +293,15 @@ class ImageComparisonExperiment:
         self.question_label.config(text="실험이 종료되었습니다. 창을 닫아주세요.")
     
     def save_results(self):
+      # 저장할 디렉토리 선택
+      save_dir = filedialog.askdirectory(title="결과를 저장할 폴더를 선택하세요")
+      if not save_dir:  # 사용자가 취소를 누른 경우
+          save_dir = "."  # 현재 디렉토리에 저장
+      
       # CSV 파일 생성
       timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
       filename = f"results_{self.participant_info['name']}_{timestamp}.csv"
+      filepath = os.path.join(save_dir, filename)  # 전체 파일 경로 생성
       
       # 헤더 정보 생성
       headers = [
@@ -309,19 +315,19 @@ class ImageComparisonExperiment:
       ]
       
       # 결과 DataFrame 생성
-      results_df = pd.DataFrame(self.responses)
-      
-      # 결과 DataFrame 생성
-      results_df = pd.DataFrame(self.responses)
+      results_df = pd.DataFrame(self.responses)            
       
       # 헤더와 데이터를 합쳐서 저장
-      with open(filename, 'w', newline='', encoding='utf-8-sig') as f:
+      with open(filepath, 'w', newline='', encoding='utf-8-sig') as f:
         # 헤더 작성
         for row in headers:
             f.write(','.join(str(item) for item in row) + '\n')
         
         # 데이터 작성
-        results_df.to_csv(f, index=False, header=False)      
+        results_df.to_csv(f, index=False, header=False)   
+        
+      # 저장 완료 메시지 표시
+      messagebox.showinfo("저장 완료", f"결과가 다음 위치에 저장되었습니다:\n{filepath}")   
     
     def validate_participant_info(self):
         name = self.name_entry.get().strip()
