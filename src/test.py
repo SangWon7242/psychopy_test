@@ -7,6 +7,7 @@ import itertools
 from PIL import Image, ImageTk
 import time
 from datetime import datetime
+import random
 
 class ImageComparisonExperiment:
     def __init__(self):
@@ -57,10 +58,10 @@ class ImageComparisonExperiment:
       # 제목 레이블
       title_label = ttk.Label(
           main_frame,
-          text="이미지 비교 실험 참가자 정보",
+          text="실험 시작",
           font=('Helvetica', 16, 'bold')
       )
-      title_label.pack(pady=(0, 20))
+      title_label.pack(pady=(10, 20))
       
       # 참가자 정보 입력 프레임
       self.info_frame = ttk.Frame(main_frame)
@@ -162,7 +163,7 @@ class ImageComparisonExperiment:
       self.question_label = tk.Label(
           self.root,
           text="다음 이미지 중, 더 가까이 보이는 전경을 선택하세요.",
-          font=('Helvetica', 16),
+          font=('Helvetica', 32),
           fg='#FFFFFF',
           bg='#7D7D7D'
       )
@@ -215,7 +216,7 @@ class ImageComparisonExperiment:
       self.experiment_frame.pack(expand=True, fill='both')
       
       # 실험 화면 표시
-      self.question_label.pack(pady=(50, 100))      
+      self.question_label.pack(pady=(200, 100))      
       self.canvas.pack(expand=True, fill='both')
       
       self.experiment_started = True
@@ -244,6 +245,17 @@ class ImageComparisonExperiment:
         canvas_center_x = self.canvas.winfo_width() // 2
         canvas_center_y = self.canvas.winfo_height() // 2
         gap = self.stimulus_size_pixels // 2  # 이미지 사이의 간격
+        
+        # 1.5cm 간격을 픽셀로 변환 (10cm = self.stimulus_size_pixels 픽셀)
+        gap = int((self.stimulus_size_pixels * 0.75) / 10) + self.stimulus_size_pixels // 2
+        
+        # 랜덤하게 이미지 순서 결정
+        if random.random() < 0.5:  # 50% 확률로 이미지 순서 변경
+            img1, img2 = img2, img1
+            img1_path, img2_path = img2_path, img1_path
+            self.current_image_order = 'swapped'
+        else:
+            self.current_image_order = 'normal'
     
         # 이미지 표시
         self.canvas.create_image(canvas_center_x - gap, canvas_center_y,
@@ -253,6 +265,7 @@ class ImageComparisonExperiment:
         
         # 이미지 참조 유지
         self.current_images = (img1, img2)
+        self.current_image_paths = (img1_path, img2_path)
         
         # 현재 trial의 시작 시간 기록
         self.trial_start_time = time.time()
@@ -310,7 +323,7 @@ class ImageComparisonExperiment:
           save_dir = "."  # 현재 디렉토리에 저장
       
       # CSV 파일 생성
-      timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+      timestamp = datetime.now().strftime('%Y%m%d_%H시_%M분')
       filename = f"results_{self.participant_info['name']}_{timestamp}.csv"
       filepath = os.path.join(save_dir, filename)  # 전체 파일 경로 생성
       
