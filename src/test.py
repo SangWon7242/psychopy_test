@@ -10,31 +10,45 @@ from datetime import datetime
 
 class ImageComparisonExperiment:
     def __init__(self):
-        self.root = tk.Tk()
-        self.root.title("이미지 비교 실험")
-        
-        # 화면 중앙에 위치
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        self.root.geometry(f"{2560}x{1440}+{(screen_width-2560)//2}+{(screen_height-1440)//2}")
-        
-        # 실험 데이터
-        self.image_pairs = []
-        self.current_pair_index = 0
-        self.responses = []
-        self.participant_info = {}
-        
-        # GUI 요소
-        self.setup_gui()
-        
-        # 실험 상태
-        self.experiment_started = False
-        self.trial_start_time = None
-        self.start_time = None
+      self.root = tk.Tk()
+      self.root.title("이미지 비교 실험")
+      
+        # 전체화면 설정
+      self.root.attributes('-fullscreen', True)  # 완전 전체화면 모드
+      
+      # ESC 키를 눌러서 전체화면을 빠져나갈 수 있도록 설정
+      self.root.bind('<Escape>', lambda e: self.root.attributes('-fullscreen', False))
+      
+      self.stimulus_size_pixels = int((2560 * 10) / 59.8)  # 약 428 픽셀
+      
+      # 화면 중앙에 위치
+      screen_width = self.root.winfo_screenwidth()
+      screen_height = self.root.winfo_screenheight()
+      self.root.geometry(f"{2560}x{1440}+{(screen_width-2560)//2}+{(screen_height-1440)//2}")
+      
+      # 실험 데이터
+      self.image_pairs = []
+      self.current_pair_index = 0
+      self.responses = []
+      self.participant_info = {}
+      
+      # GUI 요소
+      self.setup_gui()
+      
+      # 실험 상태
+      self.experiment_started = False
+      self.trial_start_time = None
+      self.start_time = None
+      
+    def load_and_resize_image(self, image_path):
+      img = Image.open(image_path)
+      # 정확히 10cm 크기로 조정
+      img = img.resize((self.stimulus_size_pixels, self.stimulus_size_pixels), Image.Resampling.LANCZOS)
+      return ImageTk.PhotoImage(img)   
         
     def setup_gui(self):
       # 배경색 설정
-      self.root.configure(bg='#F0F0F0')  # 밝은 회색으로 변경
+      self.root.configure(bg='#7D7D7D')  # 밝은 회색으로 변경
       
       # 중앙 정렬을 위한 메인 프레임
       main_frame = ttk.Frame(self.root)
@@ -147,10 +161,10 @@ class ImageComparisonExperiment:
       # 질문 레이블 생성
       self.question_label = tk.Label(
           self.root,
-          text="다음 자극물 중, 더 가까이 보이는 전경을 선택하세요.",
+          text="다음 이미지지 중, 더 가까이 보이는 전경을 선택하세요.",
           font=('Helvetica', 16),
-          fg='#333333',
-          bg='#F0F0F0'
+          fg='#FFFFFF',
+          bg='#7D7D7D'
       )
       
       # 이미지 표시 캔버스
@@ -158,7 +172,7 @@ class ImageComparisonExperiment:
           self.root,
           width=2560,
           height=1440,
-          bg='#F0F0F0',
+          bg='#7D7D7D',
           highlightthickness=0
       )
       
@@ -192,11 +206,6 @@ class ImageComparisonExperiment:
       if not self.validate_participant_info():
         return
       
-      # # GUI 요소 숨기기
-      # self.info_frame.pack_forget()
-      # self.folder_button.pack_forget()
-      # self.start_button.pack_forget()
-      
        # 기존 GUI 요소들 제거
       for widget in self.root.winfo_children():
         widget.place_forget()
@@ -206,14 +215,12 @@ class ImageComparisonExperiment:
       self.experiment_frame.pack(expand=True, fill='both')
       
       # 실험 화면 표시
-      self.question_label.pack(pady=20)
-      # self.canvas.pack(expand=True)
+      self.question_label.pack(pady=(50, 100))      
       self.canvas.pack(expand=True, fill='both')
       
       self.experiment_started = True
       self.current_pair_index = 0
-      self.start_time = time.time()
-      # self.show_current_pair()
+      self.start_time = time.time()      
       
       # 캔버스 업데이트를 위해 약간의 지연 추가
       self.root.after(100, self.show_current_pair)
@@ -236,17 +243,18 @@ class ImageComparisonExperiment:
         # 이미지 위치 계산
         canvas_center_x = self.canvas.winfo_width() // 2
         canvas_center_y = self.canvas.winfo_height() // 2
-        
+        gap = self.stimulus_size_pixels // 2  # 이미지 사이의 간격
+    
         # 이미지 표시
-        self.canvas.create_image(canvas_center_x - 230.5, canvas_center_y,
-                               image=img1, tags='img1')
-        self.canvas.create_image(canvas_center_x + 230.5, canvas_center_y,
-                               image=img2, tags='img2')
+        self.canvas.create_image(canvas_center_x - gap, canvas_center_y,
+                              image=img1, tags='img1')
+        self.canvas.create_image(canvas_center_x + gap, canvas_center_y,
+                              image=img2, tags='img2')
         
         # 이미지 참조 유지
         self.current_images = (img1, img2)
         
-        # 반응 시간 측정 시작
+        # 현재 trial의 시작 시간 기록
         self.trial_start_time = time.time()
     
     def record_response(self, choice):
@@ -256,6 +264,9 @@ class ImageComparisonExperiment:
             messagebox.showinfo("완료", "모든 이미지 비교가 완료되었습니다.")
             self.root.quit()  # 또는 self.root.destroy()
             return
+          
+        # 현재 trial의 반응 시간 계산
+        response_time = time.time() - self.trial_start_time          
 
         # 응답 기록
         response = {
@@ -263,7 +274,7 @@ class ImageComparisonExperiment:
             'image1': os.path.basename(self.image_pairs[self.current_pair_index][0]),
             'image2': os.path.basename(self.image_pairs[self.current_pair_index][1]),
             'choice': choice,
-            'response_time': time.time() - self.start_time
+            'response_time': response_time # 각 trial의 반응 시간으로 수정
         }
         self.responses.append(response)
         
@@ -354,7 +365,10 @@ class ImageComparisonExperiment:
     def run(self):
         self.root.mainloop()
 
-if __name__ == "__main__":
+def main():
     experiment = ImageComparisonExperiment()
     experiment.run()
+
+if __name__ == "__main__":
+    main()
 
