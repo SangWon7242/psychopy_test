@@ -161,7 +161,7 @@ class ImageComparisonExperiment:
       # 질문 레이블 생성
       self.question_label = tk.Label(
           self.root,
-          text="다음 이미지지 중, 더 가까이 보이는 전경을 선택하세요.",
+          text="다음 이미지 중, 더 가까이 보이는 전경을 선택하세요.",
           font=('Helvetica', 16),
           fg='#FFFFFF',
           bg='#7D7D7D'
