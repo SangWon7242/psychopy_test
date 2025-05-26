@@ -294,10 +294,23 @@ class ImageComparisonExperiment:
         # 화면의 실제 크기 가져오기
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
-    
+        
+        # 질문 레이블의 높이를 고려한 중앙 좌표 계산
+        question_height = 100  # 질문 레이블의 상단 패딩
+        spacing = 50         # 질문과 이미지 사이의 간격
+        
+        # 이미지의 y 좌표를 질문 아래로 조정
+        image_y = question_height + spacing + (self.stimulus_size_pixels // 2)
+        
+        # 이미지 표시 (x 좌표는 화면 중앙, y 좌표는 질문 아래 중앙)
+        self.canvas.create_image(canvas_width // 2, image_y,
+                        image=img, tags='current_image', anchor='center')
+        
+        '''
         # 정확한 중앙 좌표 계산
         canvas_center_x = canvas_width // 2
         canvas_center_y = canvas_height // 2
+        '''
         
         '''
         # 1.5cm 간격을 픽셀로 변환 (10cm = self.stimulus_size_pixels 픽셀)
@@ -318,8 +331,10 @@ class ImageComparisonExperiment:
                               image=img2, tags='img2')                              
         '''                              
         # 이미지 표시
+        '''
         self.canvas.create_image(canvas_center_x, canvas_center_y,
                            image=img, tags='current_image', anchor='center')
+        '''
         
         '''
         # 이미지 참조 유지
@@ -395,108 +410,119 @@ class ImageComparisonExperiment:
       filename = f"results_{self.participant_info['name']}_{timestamp}.csv"
       filepath = os.path.join(save_dir, filename)  # 전체 파일 경로 생성      
       '''
-      # Excel 파일 생성
-      timestamp = datetime.now().strftime('%Y%m%d_%H시_%M분')
-      filename = f"results_{self.participant_info['name']}_{timestamp}.xlsx"
+      # 파일명 생성 (더 엄격한 문자 필터링)
+      timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')  # 초단위까지 포함
+      safe_name = ''.join(c for c in self.participant_info['name'] if c.isalnum() or c in ('-', '_'))
+      filename = f"results_{safe_name}_{timestamp}.xlsx"
       filepath = os.path.join(save_dir, filename)
-      
-      
-      '''
-      # 헤더 정보 생성
-      headers = [
-          ['== 실험 결과 =='],
-          ['', '', '', '', ''],  # 빈 줄
-          ['참가자 이름', self.participant_info["name"]],
-          ['나이', self.participant_info["age"]],
-          ['성별', self.participant_info["gender"]],
-          ['', '', '', '', ''],  # 빈 줄
-          ['pair_number', 'image1', 'image2', 'choice', 'response_time']          
-      ]
-      '''  
-      
-      '''
-      # 결과 데이터 재구성
-      simplified_responses = []
-      for response in self.responses:
-          simplified_responses.append({
-              'image_name': os.path.basename(self.current_image_path),
-              'choice': response['choice'],
-              'response_time': response['response_time']
-          })
-      
-      # 결과 DataFrame 생성
-      results_df = pd.DataFrame(self.responses)            
-      
-      # 헤더와 데이터를 합쳐서 저장
-      with open(filepath, 'w', newline='', encoding='utf-8-sig') as f:
-        # 헤더 작성
-        for row in headers:
-            f.write(','.join(str(item) for item in row) + '\n')
+    
+      # 기존 파일이 있다면 삭제
+      if os.path.exists(filepath):
+          try:
+              os.remove(filepath)
+          except Exception:
+              # 파일명 변경
+              timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')  # 밀리초 추가
+              filename = f"results_{safe_name}_{timestamp}.xlsx"
+              filepath = os.path.join(save_dir, filename)
+    
+      try:
+        # 새로운 워크북 생성
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "실험결과"
+
+        # 데이터 검증 및 안전한 변환 함수
+        def safe_str(value):
+            if value is None:
+                return ""
+            return str(value).replace('\x00', '').strip()
+
+        def safe_number(value):
+            try:
+                return round(float(value), 3)
+            except (ValueError, TypeError):
+                return 0.0
+          
+        # 헤더 정보 작성
+        # 헤더 정보 작성 부분을 다음과 같이 수정
+        # 제목 셀 병합
+        ws.merge_cells('A1:C2')
+
+        # 제목 설정
+        title_cell = ws['A1']
+        title_cell.value = '실험 결과'
+        title_cell.font = Font(size=25, bold=True)  # 폰트 크기 25, 굵게
+        title_cell.alignment = Alignment(horizontal='center', vertical='center')  # 가운데 정렬
         
-        # 데이터 작성
-        results_df.to_csv(f, index=False, header=False)  
+        ws['A3'] = '참가자 이름'
+        ws['B3'] = self.participant_info["name"]
+        
+        ws['A4'] = '나이'
+        ws['B4'] = self.participant_info["age"]
+        
+        ws['A5'] = '성별'
+        ws['B5'] = self.participant_info["gender"]
+          
+        # 데이터 헤더 작성
+        headers = ['image_name', 'choice', 'response_time']
+        for col, header in enumerate(headers, start=1):
+            cell = ws.cell(row=8, column=col)
+            cell.value = header
+            cell.font = Font(bold=True)
+            cell.alignment = Alignment(horizontal='center')
+          
+         # 데이터 작성 (검증된 데이터만 저장)
+        for row_idx, response in enumerate(self.responses, start=9):
+            # 이미지 이름 (문자열로 안전하게 변환)
+            cell = ws.cell(row=row_idx, column=1)
+            cell.value = safe_str(response.get('image_name', ''))
+            cell.alignment = Alignment(horizontal='center')
+            
+            # 선택 (left/right만 허용)
+            cell = ws.cell(row=row_idx, column=2)
+            choice = safe_str(response.get('choice', ''))
+            cell.value = choice if choice in ['left', 'right'] else ''
+            cell.alignment = Alignment(horizontal='center')
+            
+            # 응답 시간 (숫자로 안전하게 변환)
+            cell = ws.cell(row=row_idx, column=3)
+            cell.value = safe_number(response.get('response_time', 0))
+            cell.alignment = Alignment(horizontal='center')
+          
+        # 열 너비 자동 조정
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)  # 최대 너비 제한
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
         '''
+        # 파일 저장 전 기존 파일 확인 및 삭제
+        if os.path.exists(filepath):
+            os.remove(filepath)            
+        '''            
+          
+        # 파일 저장
+        wb.save(filepath)                              
+        wb.close()
         
-      # 새로운 워크북 생성
-      wb = Workbook()
-      ws = wb.active
-      ws.title = "실험 결과"
-      
-      # 헤더 정보 작성
-      ws['A1'] = '== 실험 결과 =='
-      
-      ws['A3'] = '참가자 이름'
-      ws['B3'] = self.participant_info["name"]
-      
-      ws['A4'] = '나이'
-      ws['B4'] = self.participant_info["age"]
-      
-      ws['A5'] = '성별'
-      ws['B5'] = self.participant_info["gender"]
-      
-      # 데이터 헤더 작성 (굵은 글씨)
-      headers = ['image_name', 'choice', 'response_time']
-      for col, header in enumerate(headers, start=1):
-          cell = ws.cell(row=7, column=col)
-          cell.value = header
-          cell.font = Font(bold=True)  # 굵은 글씨
-          cell.alignment = Alignment(horizontal='center')  # 가운데 정렬
-      
-       # 데이터 작성 (가운데 정렬)
-      for row_idx, response in enumerate(self.responses, start=8):
-        # image_name 열
-        cell = ws.cell(row=row_idx, column=1)
-        cell.value = response['image_name']
-        cell.alignment = Alignment(horizontal='center')
-        
-        # choice 열
-        cell = ws.cell(row=row_idx, column=2)
-        cell.value = response['choice']
-        cell.alignment = Alignment(horizontal='center')
-        
-        # response_time 열
-        cell = ws.cell(row=row_idx, column=3)
-        cell.value = response['response_time']
-        cell.alignment = Alignment(horizontal='center')
-      
-      # 열 너비 자동 조정
-      for column in ws.columns:
-          max_length = 0
-          column_letter = column[0].column_letter
-          for cell in column:
+        # 저장 완료 메시지
+        messagebox.showinfo("저장 완료", f"결과가 다음 위치에 저장되었습니다:\n{filepath}")
+          
+      except Exception as e:
+          messagebox.showerror("오류", f"파일 저장 중 오류가 발생했습니다: {str(e)}")
+          if 'wb' in locals():
               try:
-                  if len(str(cell.value)) > max_length:
-                      max_length = len(str(cell.value))
+                  wb.close()
               except:
-                  pass
-          adjusted_width = (max_length + 2)
-          ws.column_dimensions[column_letter].width = adjusted_width
-      
-      # 파일 저장
-      wb.save(filepath)         
-        
-      # 저장 완료 메시지 표시
-      messagebox.showinfo("저장 완료", f"결과가 다음 위치에 저장되었습니다:\n{filepath}")   
+                  pass   
     
     def validate_participant_info(self):
         name = self.name_entry.get().strip()
