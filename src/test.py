@@ -67,8 +67,8 @@ class ImageComparisonExperiment:
       title_label = ttk.Label(
           main_frame,
           # text="실험 시작",
-          text="Figure-Ground Experiment", # 0526 수정사항 1-1
-          # text="Depth Perception Experiment" # 0526 수정사항 1-2
+          # text="Figure-Ground Experiment", # 0526 수정사항 1-1
+          text="Depth Perception Experiment", # 0526 수정사항 1-2
           font=('Helvetica', 16, 'bold')
       )
       title_label.pack(pady=(10, 20))
@@ -173,8 +173,8 @@ class ImageComparisonExperiment:
       self.question_label = tk.Label(
           self.root,
           # text="다음 이미지 중, 더 가까이 보이는 전경을 선택하세요.",
-          text="다음 이미지 중, 전경으로 보이는 것을 선택하세요.", # 0526 수정사항 1-1
-          # text="다음 이미지 중, 더 가까이 보이는 것을 선택하세요.", # 0526 수정사항 1-2
+          # text="다음 이미지 중, 전경으로 보이는 것을 선택하세요.", # 0526 수정사항 1-1
+          text="다음 이미지 중, 더 가까이 보이는 것을 선택하세요.", # 0526 수정사항 1-2
           font=('Helvetica', 32),
           fg='#FFFFFF',
           bg='#7D7D7D'
