@@ -11,6 +11,7 @@ import random
 import openpyxl
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
+from openpyxl.utils import get_column_letter
 
 class ImageComparisonExperiment:
     def __init__(self):
@@ -440,7 +441,7 @@ class ImageComparisonExperiment:
 
         def safe_number(value):
             try:
-                return round(float(value), 3)
+                return round(float(value), 3) # 여기서 소수점 3자리까지 반올림
             except (ValueError, TypeError):
                 return 0.0
           
@@ -490,16 +491,18 @@ class ImageComparisonExperiment:
             cell.value = safe_number(response.get('response_time', 0))
             cell.alignment = Alignment(horizontal='center')
           
-        # 열 너비 자동 조정
-        for column in ws.columns:
+         # 열 너비 자동 조정
+        for i in range(1, ws.max_column + 1):
             max_length = 0
-            column_letter = column[0].column_letter
-            for cell in column:
+            column_letter = get_column_letter(i)
+            
+            for cell in ws[column_letter]:
                 try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
+                    if cell.value:
+                        max_length = max(max_length, len(str(cell.value)))
                 except:
                     pass
+            
             adjusted_width = min(max_length + 2, 50)  # 최대 너비 제한
             ws.column_dimensions[column_letter].width = adjusted_width
         
