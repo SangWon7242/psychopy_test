@@ -8,6 +8,9 @@ from PIL import Image, ImageTk
 import time
 from datetime import datetime
 import random
+import openpyxl
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment
 
 class ImageComparisonExperiment:
     def __init__(self):
@@ -20,7 +23,11 @@ class ImageComparisonExperiment:
       # ESC 키를 눌러서 전체화면을 빠져나갈 수 있도록 설정
       self.root.bind('<Escape>', lambda e: self.root.attributes('-fullscreen', False))
       
-      self.stimulus_size_pixels = int((2560 * 10) / 59.8)  # 약 428 픽셀
+      # self.stimulus_size_pixels = int((2560 * 10) / 59.8)  # 약 428 픽셀
+      # 5cm 크기로 수정 (기존 10cm에서 절반으로)
+      
+       # 직접 픽셀 크기 설정 (약 189px)
+      self.stimulus_size_pixels = 189
       
       # 화면 중앙에 위치
       screen_width = self.root.winfo_screenwidth()
@@ -43,7 +50,7 @@ class ImageComparisonExperiment:
       
     def load_and_resize_image(self, image_path):
       img = Image.open(image_path)
-      # 정확히 10cm 크기로 조정
+      # 정확히 5cm 크기로 조정
       img = img.resize((self.stimulus_size_pixels, self.stimulus_size_pixels), Image.Resampling.LANCZOS)
       return ImageTk.PhotoImage(img)   
         
@@ -58,7 +65,9 @@ class ImageComparisonExperiment:
       # 제목 레이블
       title_label = ttk.Label(
           main_frame,
-          text="실험 시작",
+          # text="실험 시작",
+          text="Figure-Ground Experiment", # 0526 수정사항 1-1
+          # text="Depth Perception Experiment" # 0526 수정사항 1-2
           font=('Helvetica', 16, 'bold')
       )
       title_label.pack(pady=(10, 20))
@@ -162,7 +171,9 @@ class ImageComparisonExperiment:
       # 질문 레이블 생성
       self.question_label = tk.Label(
           self.root,
-          text="다음 이미지 중, 더 가까이 보이는 전경을 선택하세요.",
+          # text="다음 이미지 중, 더 가까이 보이는 전경을 선택하세요.",
+          text="다음 이미지 중, 전경으로 보이는 것을 선택하세요.", # 0526 수정사항 1-1
+          # text="다음 이미지 중, 더 가까이 보이는 것을 선택하세요.", # 0526 수정사항 1-2
           font=('Helvetica', 32),
           fg='#FFFFFF',
           bg='#7D7D7D'
@@ -187,21 +198,40 @@ class ImageComparisonExperiment:
             self.load_images(folder_path)
     
     def load_images(self, folder_path):
-        # 이미지 파일 찾기
-        image_files = []
-        for file in os.listdir(folder_path):
-            if file.lower().endswith(('.png', '.jpg', '.jpeg')):
-                image_files.append(os.path.join(folder_path, file))
-        
-        # 모든 가능한 페어 생성
-        self.image_pairs = list(itertools.combinations(image_files, 2))
-        print(f"총 {len(self.image_pairs)}개의 이미지 페어가 생성되었습니다.")
+      '''
+      # 이미지 파일 찾기
+      image_files = []
+      for file in os.listdir(folder_path):
+          if file.lower().endswith(('.png', '.jpg', '.jpeg')):
+              image_files.append(os.path.join(folder_path, file))
+      
+      # 모든 가능한 페어 생성
+      self.image_pairs = list(itertools.combinations(image_files, 2))
+      print(f"총 {len(self.image_pairs)}개의 이미지 페어가 생성되었습니다.")
+      '''
+      
+      # 이미지 파일 찾기
+      self.image_files = []  # self.image_pairs 대신 self.image_files 사용
+      for file in os.listdir(folder_path):
+          if file.lower().endswith(('.png', '.jpg', '.jpeg')):
+              self.image_files.append(os.path.join(folder_path, file))
+      
+      # 이미지 파일 리스트를 무작위로 섞기
+      random.shuffle(self.image_files)
+      print(f"총 {len(self.image_files)}개의 이미지가 로드되었습니다.")
     
     def start_experiment(self):
+      '''
       # 이미지 페어가 로드되었는지 확인
       if not self.image_pairs:
         messagebox.showerror("오류", "먼저 이미지 폴더를 선택해주세요.")
         return
+      '''        
+      
+      # 이미지가 로드되었는지 확인
+      if not hasattr(self, 'image_files') or not self.image_files:
+          messagebox.showerror("오류", "먼저 이미지 폴더를 선택해주세요.")
+          return
       
       # 참가자 정보 검증
       if not self.validate_participant_info():
@@ -227,25 +257,49 @@ class ImageComparisonExperiment:
       self.root.after(100, self.show_current_pair)
     
     def show_current_pair(self):
+        '''
         if self.current_pair_index >= len(self.image_pairs):
             self.end_experiment()
             return
+        '''  
+        if self.current_pair_index >= len(self.image_files):
+          self.end_experiment()
+          return          
         
         # 캔버스 클리어
         self.canvas.delete("all")
         
         # 현재 이미지 페어 로드
-        img1_path, img2_path = self.image_pairs[self.current_pair_index]
+        # img1_path, img2_path = self.image_pairs[self.current_pair_index]
         
+        # 현재 이미지 로드
+        current_image_path = self.image_files[self.current_pair_index]
+        
+        '''
         # 이미지 크기 조정 및 표시
         img1 = self.load_and_resize_image(img1_path)
         img2 = self.load_and_resize_image(img2_path)
+        '''
         
+        # 이미지 크기 조정 및 표시
+        img = self.load_and_resize_image(current_image_path)
+        
+        '''
         # 이미지 위치 계산
         canvas_center_x = self.canvas.winfo_width() // 2
         canvas_center_y = self.canvas.winfo_height() // 2
         gap = self.stimulus_size_pixels // 2  # 이미지 사이의 간격
+        '''
         
+        # 화면의 실제 크기 가져오기
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+    
+        # 정확한 중앙 좌표 계산
+        canvas_center_x = canvas_width // 2
+        canvas_center_y = canvas_height // 2
+        
+        '''
         # 1.5cm 간격을 픽셀로 변환 (10cm = self.stimulus_size_pixels 픽셀)
         gap = int((self.stimulus_size_pixels * 0.75) / 10) + self.stimulus_size_pixels // 2
         
@@ -261,18 +315,28 @@ class ImageComparisonExperiment:
         self.canvas.create_image(canvas_center_x - gap, canvas_center_y,
                               image=img1, tags='img1')
         self.canvas.create_image(canvas_center_x + gap, canvas_center_y,
-                              image=img2, tags='img2')
+                              image=img2, tags='img2')                              
+        '''                              
+        # 이미지 표시
+        self.canvas.create_image(canvas_center_x, canvas_center_y,
+                           image=img, tags='current_image', anchor='center')
         
+        '''
         # 이미지 참조 유지
         self.current_images = (img1, img2)
         self.current_image_paths = (img1_path, img2_path)
+        '''
+        
+        # 이미지 참조 유지
+        self.current_image = img
+        self.current_image_path = current_image_path
         
         # 현재 trial의 시작 시간 기록
         self.trial_start_time = time.time()
     
     def record_response(self, choice):
         # 현재 인덱스가 유효한지 확인
-        if self.current_pair_index >= len(self.image_pairs):
+        if self.current_pair_index >= len(self.image_files):
             # 모든 이미지를 다 봤을 때의 처리
             messagebox.showinfo("완료", "모든 이미지 비교가 완료되었습니다.")
             self.root.quit()  # 또는 self.root.destroy()
@@ -281,7 +345,8 @@ class ImageComparisonExperiment:
         # 현재 trial의 반응 시간 계산
         response_time = time.time() - self.trial_start_time          
 
-        # 응답 기록
+        '''
+        # 응답 기록        
         response = {
           'pair_number': self.current_pair_index + 1, 
             'image1': os.path.basename(self.image_pairs[self.current_pair_index][0]),
@@ -289,24 +354,26 @@ class ImageComparisonExperiment:
             'choice': choice,
             'response_time': response_time # 각 trial의 반응 시간으로 수정
         }
+        '''
+        # 응답 기록
+        response = {
+          'image_name': os.path.basename(self.current_image_path),
+          'choice': choice,
+          'response_time': response_time
+        }
         self.responses.append(response)
         
         # 다음 이미지 쌍으로 이동
         self.current_pair_index += 1
         
         # 다음 이미지가 있는지 확인
-        if self.current_pair_index < len(self.image_pairs):
+        if self.current_pair_index < len(self.image_files):
             self.show_current_pair()
         else:
             # 모든 이미지를 다 봤을 때의 처리
             self.save_results()  # 응답 저장
             messagebox.showinfo("완료", "모든 이미지 비교가 완료되었습니다.")
-            self.root.quit()  # 또는 self.root.destroy()
-    
-    def load_and_resize_image(self, image_path):
-        img = Image.open(image_path)
-        img = img.resize((429, 429), Image.Resampling.LANCZOS)
-        return ImageTk.PhotoImage(img)
+            self.root.quit()  # 또는 self.root.destroy()    
     
     def end_experiment(self):
         # 결과 저장
@@ -322,11 +389,19 @@ class ImageComparisonExperiment:
       if not save_dir:  # 사용자가 취소를 누른 경우
           save_dir = "."  # 현재 디렉토리에 저장
       
+      '''
       # CSV 파일 생성
       timestamp = datetime.now().strftime('%Y%m%d_%H시_%M분')
       filename = f"results_{self.participant_info['name']}_{timestamp}.csv"
-      filepath = os.path.join(save_dir, filename)  # 전체 파일 경로 생성
+      filepath = os.path.join(save_dir, filename)  # 전체 파일 경로 생성      
+      '''
+      # Excel 파일 생성
+      timestamp = datetime.now().strftime('%Y%m%d_%H시_%M분')
+      filename = f"results_{self.participant_info['name']}_{timestamp}.xlsx"
+      filepath = os.path.join(save_dir, filename)
       
+      
+      '''
       # 헤더 정보 생성
       headers = [
           ['== 실험 결과 =='],
@@ -337,6 +412,17 @@ class ImageComparisonExperiment:
           ['', '', '', '', ''],  # 빈 줄
           ['pair_number', 'image1', 'image2', 'choice', 'response_time']          
       ]
+      '''  
+      
+      '''
+      # 결과 데이터 재구성
+      simplified_responses = []
+      for response in self.responses:
+          simplified_responses.append({
+              'image_name': os.path.basename(self.current_image_path),
+              'choice': response['choice'],
+              'response_time': response['response_time']
+          })
       
       # 결과 DataFrame 생성
       results_df = pd.DataFrame(self.responses)            
@@ -348,7 +434,66 @@ class ImageComparisonExperiment:
             f.write(','.join(str(item) for item in row) + '\n')
         
         # 데이터 작성
-        results_df.to_csv(f, index=False, header=False)   
+        results_df.to_csv(f, index=False, header=False)  
+        '''
+        
+      # 새로운 워크북 생성
+      wb = Workbook()
+      ws = wb.active
+      ws.title = "실험 결과"
+      
+      # 헤더 정보 작성
+      ws['A1'] = '== 실험 결과 =='
+      
+      ws['A3'] = '참가자 이름'
+      ws['B3'] = self.participant_info["name"]
+      
+      ws['A4'] = '나이'
+      ws['B4'] = self.participant_info["age"]
+      
+      ws['A5'] = '성별'
+      ws['B5'] = self.participant_info["gender"]
+      
+      # 데이터 헤더 작성 (굵은 글씨)
+      headers = ['image_name', 'choice', 'response_time']
+      for col, header in enumerate(headers, start=1):
+          cell = ws.cell(row=7, column=col)
+          cell.value = header
+          cell.font = Font(bold=True)  # 굵은 글씨
+          cell.alignment = Alignment(horizontal='center')  # 가운데 정렬
+      
+       # 데이터 작성 (가운데 정렬)
+      for row_idx, response in enumerate(self.responses, start=8):
+        # image_name 열
+        cell = ws.cell(row=row_idx, column=1)
+        cell.value = response['image_name']
+        cell.alignment = Alignment(horizontal='center')
+        
+        # choice 열
+        cell = ws.cell(row=row_idx, column=2)
+        cell.value = response['choice']
+        cell.alignment = Alignment(horizontal='center')
+        
+        # response_time 열
+        cell = ws.cell(row=row_idx, column=3)
+        cell.value = response['response_time']
+        cell.alignment = Alignment(horizontal='center')
+      
+      # 열 너비 자동 조정
+      for column in ws.columns:
+          max_length = 0
+          column_letter = column[0].column_letter
+          for cell in column:
+              try:
+                  if len(str(cell.value)) > max_length:
+                      max_length = len(str(cell.value))
+              except:
+                  pass
+          adjusted_width = (max_length + 2)
+          ws.column_dimensions[column_letter].width = adjusted_width
+      
+      # 파일 저장
+      wb.save(filepath)         
         
       # 저장 완료 메시지 표시
       messagebox.showinfo("저장 완료", f"결과가 다음 위치에 저장되었습니다:\n{filepath}")   
