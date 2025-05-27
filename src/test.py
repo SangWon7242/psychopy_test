@@ -28,7 +28,7 @@ class ImageComparisonExperiment:
       # 5cm 크기로 수정 (기존 10cm에서 절반으로)
       
        # 직접 픽셀 크기 설정 (약 189px)
-      self.stimulus_size_pixels = 189
+      self.stimulus_size_pixels = 208
       
       # 화면 중앙에 위치
       screen_width = self.root.winfo_screenwidth()
@@ -296,6 +296,7 @@ class ImageComparisonExperiment:
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
         
+        '''
         # 질문 레이블의 높이를 고려한 중앙 좌표 계산
         question_height = 100  # 질문 레이블의 상단 패딩
         spacing = 50         # 질문과 이미지 사이의 간격
@@ -306,6 +307,17 @@ class ImageComparisonExperiment:
         # 이미지 표시 (x 좌표는 화면 중앙, y 좌표는 질문 아래 중앙)
         self.canvas.create_image(canvas_width // 2, image_y,
                         image=img, tags='current_image', anchor='center')
+        '''
+        
+         # 화면 정중앙 좌표 계산
+        center_x = canvas_width // 2
+        center_y = canvas_height // 2        
+        
+        # 이미지 표시 (x 좌표는 화면 중앙, y 좌표는 질문 아래 중앙)
+        self.canvas.create_image(center_x, center_y,
+                        image=img, tags='current_image', anchor='center')        
+        
+        
         
         '''
         # 정확한 중앙 좌표 계산
