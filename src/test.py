@@ -18,7 +18,24 @@ class ImageComparisonExperiment:
       self.root = tk.Tk()
       self.root.title("이미지 비교 실험")
       
-        # 전체화면 설정
+      # DPI 확인
+      screen_dpi = self.get_screen_dpi()
+      
+      # 초기 크기 설정 (DPI 기반)
+      target_size_cm = 5
+      target_size_inches = target_size_cm / 2.54
+      self.stimulus_size_pixels = int(target_size_inches * screen_dpi)
+      
+      print(f"Initial size in pixels: {self.stimulus_size_pixels}")
+      
+      # 캘리브레이션 버튼 추가
+      self.calibration_button = ttk.Button(
+          self.root,
+          text="크기 조정",
+          command=self.calibrate_size
+      )
+      
+      # 전체화면 설정
       self.root.attributes('-fullscreen', True)  # 완전 전체화면 모드
       
       # ESC 키를 눌러서 전체화면을 빠져나갈 수 있도록 설정
@@ -27,8 +44,25 @@ class ImageComparisonExperiment:
       # self.stimulus_size_pixels = int((2560 * 10) / 59.8)  # 약 428 픽셀
       # 5cm 크기로 수정 (기존 10cm에서 절반으로)
       
-       # 직접 픽셀 크기 설정 (약 189px)
-      self.stimulus_size_pixels = 208
+      # 직접 픽셀 크기 설정 (약 189px)
+      # self.stimulus_size_pixels = 210
+      
+       # 화면의 물리적 DPI 계산
+      screen_width_px = self.root.winfo_screenwidth()
+      screen_height_px = self.root.winfo_screenheight()
+
+      # 모니터의 물리적 크기 (인치)
+      MONITOR_WIDTH_INCH = 27  # 실제 모니터 크기로 수정 필요
+
+      # DPI 계산
+      screen_dpi = screen_width_px / MONITOR_WIDTH_INCH
+
+      # 5cm를 인치로 변환 (1인치 = 2.54cm)
+      target_size_cm = 5
+      target_size_inches = target_size_cm / 2.54
+
+      # 필요한 픽셀 수 계산
+      self.stimulus_size_pixels = int(target_size_inches * screen_dpi)
       
       # 화면 중앙에 위치
       screen_width = self.root.winfo_screenwidth()
@@ -49,6 +83,126 @@ class ImageComparisonExperiment:
       self.trial_start_time = None
       self.start_time = None
       
+    def get_screen_dpi(self):
+      # tkinter를 통한 DPI 확인
+      dpi = self.root.winfo_fpixels('1i')
+      print(f"Screen DPI: {dpi}")
+      return dpi  
+    
+    def calibrate_size(self):
+      # 이미 캘리브레이션 창이 열려있는지 확인
+      if hasattr(self, 'calibration_window') and self.calibration_window.winfo_exists():
+        messagebox.showwarning("경고", "기존 창을 닫고 이용해주세요.")
+        return      
+      
+      # 캘리브레이션 창을 인스턴스 변수로 저장
+      self.calibration_window = tk.Toplevel(self.root)
+      self.calibration_window.title("크기 조정")
+      self.calibration_window.geometry("400x600")  # 창 크기 설정
+      
+      # 항상 최상위에 표시되도록 설정
+      self.calibration_window.attributes('-topmost', True)
+      
+      # 캔버스 생성 (테스트 이미지 표시용)
+      self.calibration_canvas = tk.Canvas(
+          self.calibration_window,
+          width=400,
+          height=400,
+          bg='#7D7D7D'
+      )
+      self.calibration_canvas.pack(pady=10)
+    
+      def adjust_size(delta):
+          self.stimulus_size_pixels += delta
+          size_label.config(text=f"현재 크기: {self.stimulus_size_pixels}px")
+          # 테스트 이미지 업데이트
+          show_test_image()
+    
+      def show_test_image():
+        # 캔버스 초기화
+        self.calibration_canvas.delete("all")
+        
+        # 정사각형 그리기 (테스트용)
+        center_x = 200  # 캔버스의 중앙 x 좌표
+        center_y = 200  # 캔버스의 중앙 y 좌표
+        half_size = self.stimulus_size_pixels // 2
+        
+        # 흰색 정사각형 그리기
+        self.calibration_canvas.create_rectangle(
+            center_x - half_size,
+            center_y - half_size,
+            center_x + half_size,
+            center_y + half_size,
+            fill='white',
+            outline='black'
+        )
+        
+        # 크기 표시 텍스트
+        self.calibration_canvas.create_text(
+            center_x,
+            center_y,
+            text="5cm",
+            fill='black',
+            font=('Helvetica', 12)
+        )
+    
+      # 컨트롤 프레임
+      control_frame = ttk.Frame(self.calibration_window)
+      control_frame.pack(pady=10)
+      
+      # 크기 조절 버튼
+      ttk.Button(
+          control_frame,
+          text="크게(+1px)",
+          command=lambda: adjust_size(1)
+      ).pack(side='left', padx=5)
+      
+      ttk.Button(
+          control_frame,
+          text="작게(-1px)",
+          command=lambda: adjust_size(-1)
+      ).pack(side='left', padx=5)
+      
+      # 미세 조정 버튼 추가
+      ttk.Button(
+          control_frame,
+          text="미세 증가(+0.5px)",
+          command=lambda: adjust_size(0.5)
+      ).pack(side='left', padx=5)
+      
+      ttk.Button(
+          control_frame,
+          text="미세 감소(-0.5px)",
+          command=lambda: adjust_size(-0.5)
+      ).pack(side='left', padx=5)
+      
+      # 현재 크기 표시 레이블
+      size_label = ttk.Label(
+          self.calibration_window,
+          text=f"현재 크기: {self.stimulus_size_pixels}px",
+          font=('Helvetica', 12)
+      )
+      size_label.pack(pady=20)
+      
+      # 안내 텍스트
+      ttk.Label(
+          self.calibration_window,
+          text="실제 자로 측정하면서 정확히 5cm가 되도록 조정하세요.",
+          wraplength=350,
+          font=('Helvetica', 10)
+      ).pack(pady=20)
+      
+      # 초기 테스트 이미지 표시
+      show_test_image() 
+      
+      # 창이 닫힐 때 cleanup
+      def on_closing():
+          if hasattr(self, 'calibration_window'):
+              self.calibration_window.destroy()
+              delattr(self, 'calibration_window')
+      
+      self.calibration_window.protocol("WM_DELETE_WINDOW", on_closing)
+      
     def load_and_resize_image(self, image_path):
       img = Image.open(image_path)
       # 정확히 5cm 크기로 조정
@@ -67,8 +221,8 @@ class ImageComparisonExperiment:
       title_label = ttk.Label(
           main_frame,
           # text="실험 시작",
-          # text="Figure-Ground Experiment", # 0526 수정사항 1-1
-          text="Depth Perception Experiment", # 0526 수정사항 1-2
+          text="Figure-Ground Experiment", # 0526 수정사항 1-1
+          # text="Depth Perception Experiment", # 0526 수정사항 1-2
           font=('Helvetica', 16, 'bold')
       )
       title_label.pack(pady=(10, 20))
@@ -153,6 +307,16 @@ class ImageComparisonExperiment:
       )
       self.folder_button.pack(pady=5)
       
+      # 캘리브레이션 버튼 추가
+      self.calibration_button = ttk.Button(
+          button_frame,
+          text="크기 조정",
+          command=self.calibrate_size,
+          style='Custom.TButton',
+          width=20
+      )
+      self.calibration_button.pack(pady=5)  # 여기에 pack() 추가    
+      
       # 실험 시작 버튼
       self.start_button = ttk.Button(
           button_frame,
@@ -173,8 +337,8 @@ class ImageComparisonExperiment:
       self.question_label = tk.Label(
           self.root,
           # text="다음 이미지 중, 더 가까이 보이는 전경을 선택하세요.",
-          # text="다음 이미지 중, 전경으로 보이는 것을 선택하세요.", # 0526 수정사항 1-1
-          text="다음 이미지 중, 더 가까이 보이는 것을 선택하세요.", # 0526 수정사항 1-2
+          text="다음 이미지 중, 전경으로 보이는 것을 선택하세요.", # 0526 수정사항 1-1
+          # text="다음 이미지 중, 더 가까이 보이는 것을 선택하세요.", # 0526 수정사항 1-2
           font=('Helvetica', 32),
           fg='#FFFFFF',
           bg='#7D7D7D'
@@ -256,6 +420,20 @@ class ImageComparisonExperiment:
       
       # 캔버스 업데이트를 위해 약간의 지연 추가
       self.root.after(100, self.show_current_pair)
+      
+    def load_and_resize_image(self, image_path):
+      img = Image.open(image_path)
+      # 디버깅을 위한 출력 추가
+      print(f"Resizing image to {self.stimulus_size_pixels}x{self.stimulus_size_pixels} pixels")
+      print(f"Original image size: {img.size}")
+      
+      # 정확히 설정된 크기로 조정
+      img = img.resize((self.stimulus_size_pixels, self.stimulus_size_pixels), Image.Resampling.LANCZOS)
+      
+      # 리사이즈 후 크기 확인
+      print(f"Resized image size: {img.size}")
+      
+      return ImageTk.PhotoImage(img)      
     
     def show_current_pair(self):
         '''
@@ -275,6 +453,10 @@ class ImageComparisonExperiment:
         
         # 현재 이미지 로드
         current_image_path = self.image_files[self.current_pair_index]
+        
+        # 디버깅을 위한 출력 추가
+        print(f"\nShowing image {self.current_pair_index + 1}")
+        print(f"Current stimulus size setting: {self.stimulus_size_pixels}px")
         
         '''
         # 이미지 크기 조정 및 표시
